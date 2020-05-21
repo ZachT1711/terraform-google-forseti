@@ -16,4 +16,14 @@
 
 terraform {
   required_version = ">= 0.12"
+  required_providers {
+    google      = "~> 3.7.0"
+    google-beta = "~> 3.7.0"
+    http        = "~> 1.2.0"
+    local       = "~> 1.4.0"
+    null        = "~> 2.1.0"
+    random      = "~> 2.2.0"
+    template    = "~> 2.1.0"
+    tls         = "~> 2.1.1"
+  }
 }

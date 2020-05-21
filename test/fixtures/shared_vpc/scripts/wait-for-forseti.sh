@@ -19,7 +19,7 @@
 echo "Waiting for up to 720 seconds for Forseti to be ready."
 
 for _ in {1..72}; do
-  if [[ -f /etc/profile.d/forseti_environment.sh ]]; then
+  if [[ -f /home/ubuntu/forseti_env.sh ]]; then
     echo "Forseti is ready."
     exit 0
   else

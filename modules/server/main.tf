@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Google LLC
+ * Copyright 2020 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,13 @@ resource "random_integer" "random_minute" {
 # Locals #
 #--------#
 locals {
-  random_hash     = var.suffix
-  network_project = var.network_project != "" ? var.network_project : var.project_id
-  server_zone     = "${var.server_region}-c"
+  constraint_target       = var.folder_id != "" ? "folder/*" : "organization/*"
+  forseti_run_frequency   = var.forseti_run_frequency == null ? "${random_integer.random_minute.result} */2 * * *" : var.forseti_run_frequency
+  git_sync_public_ssh_key = length(tls_private_key.policy_library_sync_ssh) == 1 ? tls_private_key.policy_library_sync_ssh[0].public_key_openssh : ""
+  network_project         = var.network_project != "" ? var.network_project : var.project_id
+  random_hash             = var.suffix
+  server_zone             = "${var.server_region}-c"
+
   server_startup_script = file(
     "${path.module}/templates/scripts/forseti-server/forseti_server_startup_script.sh.tpl",
   )
@@ -58,10 +62,6 @@ locals {
 
   }
   network_interface = local.network_interface_base[var.server_private ? "private" : "public"]
-
-  forseti_run_frequency = var.forseti_run_frequency == null ? "${random_integer.random_minute.result} */2 * * *" : var.forseti_run_frequency
-
-  git_sync_public_ssh_key = length(tls_private_key.policy_library_sync_ssh) == 1 ? tls_private_key.policy_library_sync_ssh[0].public_key_openssh : ""
 }
 
 #-------------------#
@@ -73,6 +73,9 @@ data "template_file" "forseti_server_startup_script" {
   vars = {
     cloudsql_proxy_arch                    = var.cloudsql_proxy_arch
     cloud_profiler_enabled                 = var.cloud_profiler_enabled
+    constraint_target                      = local.constraint_target
+    domain                                 = var.domain
+    config_validator_enabled               = var.config_validator_enabled
     forseti_conf_server_checksum           = base64sha256(var.server_config_module.forseti-server-config)
     forseti_env                            = data.template_file.forseti_server_env.rendered
     forseti_environment                    = data.template_file.forseti_server_environment.rendered
@@ -86,8 +89,11 @@ data "template_file" "forseti_server_startup_script" {
     forseti_version                        = var.forseti_version
     google_cloud_sdk_version               = var.google_cloud_sdk_version
     mailjet_enabled                        = var.mailjet_enabled
+    policy_library_bundle                  = var.policy_library_bundle
     policy_library_home                    = var.policy_library_home
+    policy_library_repository_url          = var.policy_library_repository_url
     policy_library_sync_enabled            = var.policy_library_sync_enabled
+    policy_library_sync_gcs_enabled        = var.policy_library_sync_gcs_enabled
     policy_library_sync_gcs_directory_name = var.policy_library_sync_gcs_directory_name
     storage_bucket_name                    = var.server_gcs_module.forseti-server-storage-bucket
   }
